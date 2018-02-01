@@ -13,11 +13,33 @@ WORKDIR /var/www/html
 RUN	apk add --no-cache libpq
 
 RUN	set -x \
+    && apk update \
+    && apk add --no-cache --virtual .php-build-dependencies \
+        autoconf \
+        g++ \
+        make \
+        unixodbc-dev \
+    && apk add --virtual .php-runtime-dependencies \
+        freetds \
+	freetds-dev \
+	freetds-doc \
+        unixodbc \
+    && docker-php-source extract \
+    && docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr \
+    && docker-php-ext-install \
+        pdo_odbc \
+    && docker-php-source delete \
+    && apk del .php-build-dependencies \
+    && rm -rf /var/cache/apk/* /var/tmp/* /tmp/* \
+
+
 &&	apk add --no-cache --virtual .build-deps \
 	postgresql-dev \
 	sqlite-dev \
-&&	docker-php-ext-install pdo_mysql pdo_pgsql pdo_sqlite \
+&&	docker-php-ext-install pdo_dblib pdo_mysql pdo_pgsql pdo_sqlite \
 &&	apk del .build-deps
+
+COPY *.ini /etc/
 
 COPY	*.php /var/www/html/
 
